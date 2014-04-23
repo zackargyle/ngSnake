@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html ng-app='ngSnake'>
+
+  <head>
+    <link rel="stylesheet" type="text/css" href="snake.css">
+  </head> 
+
+  <body ng-controller="snakeCtrl">
+
+    <h3>Score: {{score}}</h3>
+    
+    <div>
+        <div class="row" ng-repeat="column in board">
+            <div ng-style="setStyling($parent.$index, $index)" class="column" ng-repeat="row in column track by $index">&nbsp</div>
+        </div>
+    </div>
+
+    <div id="startGame" ng-click="startGame()">Start Game</div>
+
+    <script src="angular.min.js"></script>
+    <script src="snake.js"></script> 
+  </body>
+
+</html>
