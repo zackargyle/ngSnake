@@ -2,6 +2,11 @@
 	font-family: "Lucida Grande";
 }
 
+#gameContainer, #pastScores {
+	width: 600px;
+	float: left;
+}
+
 .row {
 	height: 26px;
 }
