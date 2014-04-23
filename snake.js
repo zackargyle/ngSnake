@@ -3,7 +3,7 @@ angular.module('ngSnake', [])
 
   .controller('snakeCtrl', function($scope, $timeout, $window) { 
     var LEFT = 1, UP = 2, RIGHT = 3, DOWN = 4,
-        boardSize = 20, interval = 170,
+        boardSize = 20, interval = 150,
         tempDirection = LEFT, GAME_OVER = false;
 
     $scope.snake = {direction: LEFT, parts: []};
@@ -26,12 +26,9 @@ angular.module('ngSnake', [])
       else if ($scope.fruit.x == col && $scope.fruit.y == row) {
         return {"backgroundColor": "#0FFF17"};
       }
-      var parts = $scope.snake.parts;
-      for (var i = 0; i < parts.length; i++) {
-        if (parts[i].x == col && parts[i].y == row) {
-          return {"backgroundColor":"#FF2121"};
-        }
-      };
+      else if ($scope.board[row][col] === 1) {
+        return {"backgroundColor":"#FF2121"};
+      }
       return {"backgroundColor":"#000"};
     }
 
@@ -56,17 +53,22 @@ angular.module('ngSnake', [])
         return;
       } 
       else if (newPart.x === $scope.fruit.x && newPart.y === $scope.fruit.y) {
+        // Got Fruit
         $scope.score++;
+        // Update Interval?
         if ($scope.score % 5 === 0) {
-          interval -= 20;
+          interval -= 15;
         }
+        // Add to snake length
         var tail = angular.copy($scope.snake.parts[$scope.snake.parts.length-1]);
         $scope.snake.parts.push(tail);
         resetFruit();
       }
 
-      $scope.snake.parts.pop();
+      var oldPart = $scope.snake.parts.pop();
       $scope.snake.parts.unshift(newPart);
+      $scope.board[oldPart.y][oldPart.x] = 0;
+      $scope.board[newPart.y][newPart.x] = 1;
 
       $timeout(function() {
         update();
@@ -82,11 +84,8 @@ angular.module('ngSnake', [])
     }
 
     function selfCollision(part) {
-      var parts = $scope.snake.parts;
-      for (var i = 0; i < parts.length; i++) {
-        if (part.x === parts[i].x && part.y === parts[i].y) {
-          return true;
-        }
+      if ($scope.board[part.y][part.x] === 1) {
+        return true;
       }
       return false;
     }
@@ -95,11 +94,8 @@ angular.module('ngSnake', [])
       var x = Math.floor(Math.random()*(boardSize));
       var y = Math.floor(Math.random()*(boardSize));
 
-      var parts = $scope.snake.parts;
-      for (var i = 0; i < parts.length; i++) {
-        if (parts[i].x === x && parts[i].y === y) {
-          return resetFruit();
-        }
+      if ($scope.board[y][x] === 1) {
+        return resetFruit();
       }
       $scope.fruit = {x:x, y:y};
     }

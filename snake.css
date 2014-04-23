@@ -3,12 +3,13 @@
 }
 
 .row {
-	height: 20px;
+	height: 26px;
 }
 
 .column {
 	border: 1px solid white;
-	width: 18px;
+	width: 24px;
+	height: 24px;
 	display: inline-block;
 }
 
