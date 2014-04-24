@@ -17,8 +17,8 @@
       <div id="startGame" ng-click="startGame()">Start Game</div>
     </div>
     <div id="pastScores">
-      <h3>Past Scores:</h3>
-      <div ng-repeat="pastScore in ngScores">{{pastScore}}</div>
+      <h3>Best Scores:</h3>
+      <div ng-repeat="pastScore in ngScores track by $index" ng-if="$index < 10">{{$index + 1}}: {{pastScore}}</div>
 
     <script src="angular.min.js"></script>
     <script src="snake.js"></script> 
