@@ -3,42 +3,35 @@ angular.module('ngSnake', [])
 
   .controller('snakeCtrl', function($scope, $timeout, $window) { 
     var LEFT = 1, UP = 2, RIGHT = 3, DOWN = 4,
-        boardSize = 20, interval = 170,
-        tempDirection = LEFT, GAME_OVER = false;
+        boardSize = 20, interval = 150,
+        tempDirection, GAME_OVER;
 
-    $scope.snake = {direction: LEFT, parts: []};
-    $scope.fruit = {x:-1,y:-1};
+    var snake = {direction: LEFT, parts: [{x:-1,y:-1}]};
+    var fruit = {x:-1,y:-1};
+
+    $scope.ngScores = JSON.parse(localStorage.getItem("ngScores") || "[]");
+    $scope.ngScores.sort(function(a,b) {
+      return b-a;
+    });
     $scope.score = 0;
-    $scope.board = [];
-
-    // Setup game board
-    for (var i = 0; i < boardSize; i++) {
-      $scope.board[i] = [];
-      for (var j = 0; j < boardSize; j++) {
-        $scope.board[i][j] = 0;
-      }
-    }
 
     $scope.setStyling = function(row, col) {
-      if (GAME_OVER) {
-        return {"backgroundColor":"#FF2121"};
-      }
-      else if ($scope.fruit.x == col && $scope.fruit.y == row) {
-        return {"backgroundColor": "#0FFF17"};
-      }
-      var parts = $scope.snake.parts;
-      for (var i = 0; i < parts.length; i++) {
-        if (parts[i].x == col && parts[i].y == row) {
-          return {"backgroundColor":"#FF2121"};
-        }
-      };
+      if (GAME_OVER) 
+        return {"backgroundColor":"#820303"};
+      else if (fruit.x == col && fruit.y == row)
+        return {"backgroundColor": "#E80505"};
+      else if (snake.parts[0].x == col && snake.parts[0].y == row)
+        return {"backgroundColor": "#078F00"};
+      else if ($scope.board[row][col] === 1)
+        return {"backgroundColor":"#0DFF00"};
       return {"backgroundColor":"#000"};
     }
 
     function update() {
-      var newPart = angular.copy($scope.snake.parts[0]);
+      var newPart = angular.copy(snake.parts[0]);
+      snake.direction = tempDirection;
 
-      $scope.snake.direction = tempDirection;
+      // Update Location
       if (tempDirection === LEFT)
           newPart.x -= 1;
       else if (tempDirection === RIGHT)
@@ -49,25 +42,17 @@ angular.module('ngSnake', [])
           newPart.y += 1;
 
       if (boardCollision(newPart) || selfCollision(newPart)) {
-        GAME_OVER = true;
-        $timeout(function() {
-          GAME_OVER = false;
-        },500);
-        return;
-      } 
-      else if (newPart.x === $scope.fruit.x && newPart.y === $scope.fruit.y) {
-        $scope.score++;
-        if ($scope.score % 5 === 0) {
-          interval -= 20;
-        }
-        var tail = angular.copy($scope.snake.parts[$scope.snake.parts.length-1]);
-        $scope.snake.parts.push(tail);
-        resetFruit();
+        return gameOver();
+      } else if (newPart.x === fruit.x && newPart.y === fruit.y) {
+        eatFruit();
       }
 
-      $scope.snake.parts.pop();
-      $scope.snake.parts.unshift(newPart);
+      var oldPart = snake.parts.pop();
+      snake.parts.unshift(newPart);
+      $scope.board[oldPart.y][oldPart.x] = 0;
+      $scope.board[newPart.y][newPart.x] = 1;
 
+      // Do it again
       $timeout(function() {
         update();
       }, interval);
@@ -82,48 +67,78 @@ angular.module('ngSnake', [])
     }
 
     function selfCollision(part) {
-      var parts = $scope.snake.parts;
-      for (var i = 0; i < parts.length; i++) {
-        if (part.x === parts[i].x && part.y === parts[i].y) {
-          return true;
-        }
+      if ($scope.board[part.y][part.x] === 1) {
+        return true;
       }
       return false;
     }
 
     function resetFruit() {
-      var x = Math.floor(Math.random()*(boardSize));
-      var y = Math.floor(Math.random()*(boardSize));
+      var x = Math.floor(Math.random() * boardSize);
+      var y = Math.floor(Math.random() * boardSize);
 
-      var parts = $scope.snake.parts;
-      for (var i = 0; i < parts.length; i++) {
-        if (parts[i].x === x && parts[i].y === y) {
-          return resetFruit();
-        }
+      if ($scope.board[y][x] === 1) {
+        return resetFruit();
       }
-      $scope.fruit = {x:x, y:y};
+      fruit = {x:x, y:y};
     }
 
+    function eatFruit() {
+      $scope.score++;
+      
+      if ($scope.score % 5 === 0) {
+        interval -= 15;
+      }
+      var tail = angular.copy(snake.parts[snake.parts.length-1]);
+      snake.parts.push(tail);
+      resetFruit();
+    }
+
+    function gameOver() {
+      GAME_OVER = true;
+      $scope.ngScores.push($scope.score)
+      $scope.ngScores.sort(function(a,b) {return b-a });
+      localStorage.setItem("ngScores", JSON.stringify($scope.ngScores));
+
+      $timeout(function() {
+        GAME_OVER = false;
+      },500);
+
+      resetBoard();
+    }
+
+    function resetBoard() {
+      $scope.board = [];
+      for (var i = 0; i < boardSize; i++) {
+        $scope.board[i] = [];
+        for (var j = 0; j < boardSize; j++) {
+          $scope.board[i][j] = 0;
+        }
+      }
+    }
+    resetBoard();
+
     $window.addEventListener("keyup", function(e) {
-      if (e.keyCode == 37 && $scope.snake.direction !== RIGHT) 
+      if (e.keyCode == 37 && snake.direction !== RIGHT) 
         tempDirection = LEFT;
-      else if (e.keyCode == 38 && $scope.snake.direction !== DOWN) 
+      else if (e.keyCode == 38 && snake.direction !== DOWN) 
         tempDirection = UP;
-      else if (e.keyCode == 39 && $scope.snake.direction !== LEFT) 
+      else if (e.keyCode == 39 && snake.direction !== LEFT) 
         tempDirection = RIGHT;
-      else if (e.keyCode == 40 && $scope.snake.direction !== UP) 
+      else if (e.keyCode == 40 && snake.direction !== UP) 
         tempDirection = DOWN;
     });
 
     $scope.startGame = function() {
-      $scope.snake = {direction: LEFT, parts: []};
-      $scope.fruit = {x:-1,y:-1};
       $scope.score = 0;
+      snake = {direction: LEFT, parts: []};
+      tempDirection = LEFT;
+      fruit = {x:-1,y:-1};
       GAME_OVER = false;
 
       // Set up initial snake
       for (var i = 0; i < 5; i++) {
-        $scope.snake.parts.push({x: 10 + i, y: 10});
+        snake.parts.push({x: 10 + i, y: 10});
       }
       resetFruit();
       update();
