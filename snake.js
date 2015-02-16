@@ -1,140 +1,166 @@
 
 angular.module('ngSnake', [])
 
-  .controller('snakeCtrl', function($scope, $timeout, $window) { 
-    var LEFT = 1, UP = 2, RIGHT = 3, DOWN = 4,
-        boardSize = 20, interval = 150,
-        tempDirection, GAME_OVER;
+  .controller('snakeCtrl', function($scope, $timeout, $window) {
+    var BOARD_SIZE = 20;
 
-    var snake = {direction: LEFT, parts: [{x:-1,y:-1}]};
-    var fruit = {x:-1,y:-1};
+    var DIRECTIONS = {
+      LEFT: 37,
+      UP: 38,
+      RIGHT: 39,
+      DOWN: 40
+    };
 
-    $scope.ngScores = JSON.parse(localStorage.getItem("ngScores") || "[]");
-    $scope.ngScores.sort(function(a,b) {
-      return b-a;
-    });
+    var COLORS = {
+      GAME_OVER: '#820303',
+      FRUIT: '#E80505',
+      SNAKE_HEAD: '#078F00',
+      SNAKE_BODY: '#0DFF00',
+      BOARD: '#000'
+    };
+
+    var snake = {
+      direction: DIRECTIONS.LEFT,
+      parts: [{
+        x: -1,
+        y: -1
+      }]
+    };
+
+    var fruit = {
+      x: -1,
+      y: -1
+    };
+
+    var interval, tempDirection, isGameOver;
+
     $scope.score = 0;
 
-    $scope.setStyling = function(row, col) {
-      if (GAME_OVER) 
-        return {"backgroundColor":"#820303"};
-      else if (fruit.x == col && fruit.y == row)
-        return {"backgroundColor": "#E80505"};
-      else if (snake.parts[0].x == col && snake.parts[0].y == row)
-        return {"backgroundColor": "#078F00"};
-      else if ($scope.board[row][col] === 1)
-        return {"backgroundColor":"#0DFF00"};
-      return {"backgroundColor":"#000"};
-    }
+    $scope.setStyling = function(col, row) {
+      if (isGameOver)  {
+        return COLORS.GAME_OVER;
+      } else if (fruit.x == row && fruit.y == col) {
+        return COLORS.FRUIT;
+      } else if (snake.parts[0].x == row && snake.parts[0].y == col) {
+        return COLORS.SNAKE_HEAD;
+      } else if ($scope.board[col][row] === true) {
+        return COLORS.SNAKE_BODY;
+      }
+      return COLORS.BOARD;
+    };
 
     function update() {
-      var newPart = angular.copy(snake.parts[0]);
-      snake.direction = tempDirection;
+      var newHead = getNewHead();
 
-      // Update Location
-      if (tempDirection === LEFT)
-          newPart.x -= 1;
-      else if (tempDirection === RIGHT)
-          newPart.x += 1;
-      else if (tempDirection === UP)
-          newPart.y -= 1
-      else if (tempDirection === DOWN)
-          newPart.y += 1;
-
-      if (boardCollision(newPart) || selfCollision(newPart)) {
+      if (boardCollision(newHead) || selfCollision(newHead)) {
         return gameOver();
-      } else if (newPart.x === fruit.x && newPart.y === fruit.y) {
+      } else if (fruitCollision(newHead)) {
         eatFruit();
       }
 
-      var oldPart = snake.parts.pop();
-      snake.parts.unshift(newPart);
-      $scope.board[oldPart.y][oldPart.x] = 0;
-      $scope.board[newPart.y][newPart.x] = 1;
+      // Remove tail
+      var oldTail = snake.parts.pop();
+      $scope.board[oldTail.y][oldTail.x] = false;
+
+      // Pop tail to head
+      snake.parts.unshift(newHead);
+      $scope.board[newHead.y][newHead.x] = true;
 
       // Do it again
-      $timeout(function() {
-        update();
-      }, interval);
+      snake.direction = tempDirection;
+      $timeout(update, interval);
+    }
+
+    function getNewHead() {
+      var newHead = angular.copy(snake.parts[0]);
+
+      // Update Location
+      if (tempDirection === DIRECTIONS.LEFT) {
+          newHead.x -= 1;
+      } else if (tempDirection === DIRECTIONS.RIGHT) {
+          newHead.x += 1;
+      } else if (tempDirection === DIRECTIONS.UP) {
+          newHead.y -= 1;
+      } else if (tempDirection === DIRECTIONS.DOWN) {
+          newHead.y += 1;
+      }
+      return newHead;
     }
 
     function boardCollision(part) {
-       if(part.x === boardSize || part.x === -1 || 
-        part.y === boardSize || part.y === -1 ) {
-        return true;
-      }
-      return false;
+      return part.x === BOARD_SIZE || part.x === -1 || part.y === BOARD_SIZE || part.y === -1;
     }
 
     function selfCollision(part) {
-      if ($scope.board[part.y][part.x] === 1) {
-        return true;
-      }
-      return false;
+      return $scope.board[part.y][part.x] === true;
+    }
+
+    function fruitCollision(part) {
+      return part.x === fruit.x && part.y === fruit.y;
     }
 
     function resetFruit() {
-      var x = Math.floor(Math.random() * boardSize);
-      var y = Math.floor(Math.random() * boardSize);
+      var x = Math.floor(Math.random() * BOARD_SIZE);
+      var y = Math.floor(Math.random() * BOARD_SIZE);
 
-      if ($scope.board[y][x] === 1) {
+      if ($scope.board[y][x] === true) {
         return resetFruit();
       }
-      fruit = {x:x, y:y};
+      fruit = {x: x, y: y};
     }
 
     function eatFruit() {
       $scope.score++;
       
-      if ($scope.score % 5 === 0) {
-        interval -= 15;
-      }
+      // Grow by 1
       var tail = angular.copy(snake.parts[snake.parts.length-1]);
       snake.parts.push(tail);
       resetFruit();
+
+      if ($scope.score % 5 === 0) {
+        interval -= 15;
+      }
     }
 
     function gameOver() {
-      GAME_OVER = true;
-      $scope.ngScores.push($scope.score)
-      $scope.ngScores.sort(function(a,b) {return b-a });
-      localStorage.setItem("ngScores", JSON.stringify($scope.ngScores));
+      isGameOver = true;
 
       $timeout(function() {
-        GAME_OVER = false;
+        isGameOver = false;
       },500);
 
-      resetBoard();
+      setupBoard();
     }
 
-    function resetBoard() {
+    function setupBoard() {
       $scope.board = [];
-      for (var i = 0; i < boardSize; i++) {
+      for (var i = 0; i < BOARD_SIZE; i++) {
         $scope.board[i] = [];
-        for (var j = 0; j < boardSize; j++) {
-          $scope.board[i][j] = 0;
+        for (var j = 0; j < BOARD_SIZE; j++) {
+          $scope.board[i][j] = false;
         }
       }
     }
-    resetBoard();
+    setupBoard();
 
     $window.addEventListener("keyup", function(e) {
-      if (e.keyCode == 37 && snake.direction !== RIGHT) 
-        tempDirection = LEFT;
-      else if (e.keyCode == 38 && snake.direction !== DOWN) 
-        tempDirection = UP;
-      else if (e.keyCode == 39 && snake.direction !== LEFT) 
-        tempDirection = RIGHT;
-      else if (e.keyCode == 40 && snake.direction !== UP) 
-        tempDirection = DOWN;
+      if (e.keyCode == DIRECTIONS.LEFT && snake.direction !== DIRECTIONS.RIGHT) {
+        tempDirection = DIRECTIONS.LEFT;
+      } else if (e.keyCode == DIRECTIONS.UP && snake.direction !== DIRECTIONS.DOWN) {
+        tempDirection = DIRECTIONS.UP;
+      } else if (e.keyCode == DIRECTIONS.RIGHT && snake.direction !== DIRECTIONS.LEFT) {
+        tempDirection = DIRECTIONS.RIGHT;
+      } else if (e.keyCode == DIRECTIONS.DOWN && snake.direction !== DIRECTIONS.UP) {
+        tempDirection = DIRECTIONS.DOWN;
+      }
     });
 
     $scope.startGame = function() {
       $scope.score = 0;
-      snake = {direction: LEFT, parts: []};
-      tempDirection = LEFT;
-      fruit = {x:-1,y:-1};
-      GAME_OVER = false;
+      snake = {direction: DIRECTIONS.LEFT, parts: []};
+      tempDirection = DIRECTIONS.LEFT;
+      isGameOver = false;
+      interval = 150;
 
       // Set up initial snake
       for (var i = 0; i < 5; i++) {
@@ -142,6 +168,6 @@ angular.module('ngSnake', [])
       }
       resetFruit();
       update();
-    }
+    };
 
   });
