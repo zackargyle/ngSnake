@@ -11,14 +11,14 @@
       <h3>Score: {{score}}</h3>
       <div>
           <div class="row" ng-repeat="column in board">
-              <div ng-style="setStyling($parent.$index, $index)" class="column" ng-repeat="row in column track by $index">&nbsp</div>
+              <div class="column"
+                  ng-style="{'background-color': setStyling($parent.$index, $index)}"
+                  ng-repeat="row in column track by $index"
+              ></div>
           </div>
       </div>
       <div id="startGame" ng-click="startGame()">Start Game</div>
     </div>
-    <div id="pastScores">
-      <h3>Best Scores:</h3>
-      <div ng-repeat="pastScore in ngScores track by $index" ng-if="$index < 10">{{$index + 1}}: {{pastScore}}</div>
 
     <script src="angular.min.js"></script>
     <script src="snake.js"></script> 
